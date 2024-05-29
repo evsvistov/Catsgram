@@ -1,7 +1,6 @@
 package ru.yandex.practicum.catsgram.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.catsgram.exception.ConditionsNotMetException;
 import ru.yandex.practicum.catsgram.exception.NotFoundException;
@@ -10,8 +9,10 @@ import ru.yandex.practicum.catsgram.model.Post;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // Указываем, что класс PostService - является бином и его
 // нужно добавить в контекст приложения
@@ -25,8 +26,13 @@ public class PostService {
         this.userService = userService;
     }
 
-    public Collection<Post> findAll() {
-        return posts.values();
+    public Collection<Post> findAll(int from, int size, String sort) {
+        return posts.values().stream()
+                .sorted(sort.equalsIgnoreCase("asc") ? Comparator.comparing(Post::getPostDate)
+                        : Comparator.comparing(Post::getPostDate).reversed())
+                .skip(from)
+                .limit(size)
+                .collect(Collectors.toList());
     }
 
     public Post findPostById(Long postId) {
@@ -67,6 +73,25 @@ public class PostService {
         }
         throw new NotFoundException("Пост с id = " + newPost.getId() + " не найден");
     }
+
+    public enum SortOrder {
+        ASCENDING, DESCENDING;
+
+        // Преобразует строку в элемент перечисления
+        public static SortOrder from(String order) {
+            switch (order.toLowerCase()) {
+                case "ascending":
+                case "asc":
+                    return ASCENDING;
+                case "descending":
+                case "desc":
+                    return DESCENDING;
+                default:
+                    return null;
+            }
+        }
+    }
+
 
     private long getNextId() {
         long currentMaxId = posts.keySet()
