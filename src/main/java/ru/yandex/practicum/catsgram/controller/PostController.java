@@ -9,21 +9,21 @@ import ru.yandex.practicum.catsgram.service.UserService;
 
 import java.util.Collection;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/posts")
 public class PostController {
     private final PostService postService;
     private final UserService userService;
 
-    @Autowired
-    public PostController(PostService postService, UserService userService) {
-        this.postService = postService;
-        this.userService = userService;
-    }
-
     @GetMapping
     public Collection<Post> findAll() {
         return postService.findAll();
+    }
+
+   @GetMapping("/posts/{id}")
+    public Post findPostById(@PathVariable Long id) {
+        return postService.findPostById(id);
     }
 
     @PostMapping

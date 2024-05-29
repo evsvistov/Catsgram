@@ -1,9 +1,11 @@
 package ru.yandex.practicum.catsgram.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.catsgram.exception.ConditionsNotMetException;
 import ru.yandex.practicum.catsgram.exception.NotFoundException;
+import ru.yandex.practicum.catsgram.exception.PostNotFoundException;
 import ru.yandex.practicum.catsgram.model.Post;
 
 import java.time.Instant;
@@ -18,12 +20,21 @@ public class PostService {
     private final Map<Long, Post> posts = new HashMap<>();
     private final UserService userService;
 
+    @Autowired
     public PostService(UserService userService) {
         this.userService = userService;
     }
 
     public Collection<Post> findAll() {
         return posts.values();
+    }
+
+    public Post findPostById(Long postId) {
+        if (posts.containsKey(postId)) {
+            return posts.get(postId);
+        } else {
+            throw new PostNotFoundException(String.format("Пост № %d не найден", postId));
+        }
     }
 
     public Post create(Post post, Long authorId) {
