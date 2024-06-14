@@ -4,62 +4,74 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.catsgram.exception.ConditionsNotMetException;
 import ru.yandex.practicum.catsgram.exception.NotFoundException;
-import ru.yandex.practicum.catsgram.exception.PostNotFoundException;
 import ru.yandex.practicum.catsgram.model.Post;
+import ru.yandex.practicum.catsgram.model.SortOrder;
+import ru.yandex.practicum.catsgram.model.User;
 
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-// Указываем, что класс PostService - является бином и его
-// нужно добавить в контекст приложения
 @Service
 public class PostService {
     private final Map<Long, Post> posts = new HashMap<>();
+
     private final UserService userService;
+
+    private final Comparator<Post> askComparator = Comparator.comparingInt((Post post) -> (int) post.getPostDate().toEpochMilli());
+
+    private final Comparator<Post> descComparator = (Post post1, Post post2) -> (int) post2.getPostDate().toEpochMilli() - (int) post1.getPostDate().toEpochMilli();
 
     @Autowired
     public PostService(UserService userService) {
         this.userService = userService;
     }
 
-    public Collection<Post> findAll(int from, int size, String sort) {
-        return posts.values().stream()
-                .sorted(sort.equalsIgnoreCase("asc") ? Comparator.comparing(Post::getPostDate)
-                        : Comparator.comparing(Post::getPostDate).reversed())
-                .skip(from)
+    public Collection<Post> findAll(SortOrder sort, Integer size, Integer from) {
+        List<Post> result = this.posts.values()
+                .stream()
+                .sorted(sort == SortOrder.ASCENDING ? askComparator : descComparator)
                 .limit(size)
-                .collect(Collectors.toList());
+                .toList();
+
+        int toIndex = Math.min((from + size), result.size());
+        int fromIndex = from > result.size() ? 0 : from;
+
+        return result.subList(fromIndex, toIndex);
     }
 
-    public Post findPostById(Long postId) {
-        if (posts.containsKey(postId)) {
-            return posts.get(postId);
-        } else {
-            throw new PostNotFoundException(String.format("Пост № %d не найден", postId));
+    public Optional<Post> findById(Long id) {
+        Post post = posts.get(id);
+        if (post == null) {
+            return Optional.empty();
         }
+        return Optional.of(post);
     }
 
-    public Post create(Post post, Long authorId) {
-
-        if (userService.findUserById(authorId).isEmpty()) {
-            throw new ConditionsNotMetException("«Автор с id = " + authorId + " не найден»");
-        }
-
+    public Post create(Post post) {
         if (post.getDescription() == null || post.getDescription().isBlank()) {
             throw new ConditionsNotMetException("Описание не может быть пустым");
+        }
+
+        User user = userService.findById(post.getAuthorId());
+
+        if (user == null) {
+            throw new ConditionsNotMetException(String.format("Автор с id = %s не найден", post.getAuthorId()));
         }
 
         post.setId(getNextId());
         post.setPostDate(Instant.now());
         posts.put(post.getId(), post);
+
         return post;
     }
 
     public Post update(Post newPost) {
+        // проверяем необходимые условия
         if (newPost.getId() == null) {
             throw new ConditionsNotMetException("Id должен быть указан");
         }
@@ -68,30 +80,12 @@ public class PostService {
             if (newPost.getDescription() == null || newPost.getDescription().isBlank()) {
                 throw new ConditionsNotMetException("Описание не может быть пустым");
             }
+            // если публикация найдена и все условия соблюдены, обновляем её содержимое
             oldPost.setDescription(newPost.getDescription());
             return oldPost;
         }
         throw new NotFoundException("Пост с id = " + newPost.getId() + " не найден");
     }
-
-    public enum SortOrder {
-        ASCENDING, DESCENDING;
-
-        // Преобразует строку в элемент перечисления
-        public static SortOrder from(String order) {
-            switch (order.toLowerCase()) {
-                case "ascending":
-                case "asc":
-                    return ASCENDING;
-                case "descending":
-                case "desc":
-                    return DESCENDING;
-                default:
-                    return null;
-            }
-        }
-    }
-
 
     private long getNextId() {
         long currentMaxId = posts.keySet()

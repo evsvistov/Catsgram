@@ -14,31 +14,31 @@ public class ErrorHandler {
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse NotFoundException(final NotFoundException e) {
+    public ErrorResponse notFoundException(final NotFoundException e) {
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse DuplicatedDataException(final DuplicatedDataException e) {
+    public ErrorResponse duplicatedDataException(final DuplicatedDataException e) {
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-    public ErrorResponse ConditionsNotMetException(final ConditionsNotMetException e) {
+    public ErrorResponse conditionsNotMetException(final ConditionsNotMetException e) {
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse ParameterNotValidException(final ParameterNotValidException e) {
+    public ErrorResponse parameterNotValidException(final ParameterNotValidException e) {
         return new ErrorResponse("Некорректное значение параметра" + e.getParameter() + ":" + e.getReason());
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse InternalServerException(Exception e) {
+    public ErrorResponse internalServerException(Exception e) {
         return new ErrorResponse("Произошла непредвиденная ошибка.");
     }
 }
